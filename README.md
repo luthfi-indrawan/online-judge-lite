@@ -38,6 +38,7 @@ VITE_SUPABASE_BUCKET=problems
 ## Fitur
 
 ### Semua user
+
 - Login JWT dan pemeriksaan profil via `/auth/me`
 - Dashboard dan daftar problem group
 - Status grup berdasarkan field server `UPCOMING`, `ONGOING`, `ENDED`
@@ -46,6 +47,7 @@ VITE_SUPABASE_BUCKET=problems
 - Scoreboard matrix dengan warna First Blood, Accepted, Attempted, dan Not Attempted
 
 ### Admin
+
 - Buat akun individual, reset password, impor CSV bulk
 - Buat problem group dan jadwal
 - Buat problem, unggah PDF ke Supabase Storage, tentukan time/memory limit
