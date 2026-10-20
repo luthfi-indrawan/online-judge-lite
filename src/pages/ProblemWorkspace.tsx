@@ -1,13 +1,13 @@
 import Editor from "@monaco-editor/react";
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
-  ChevronDown,
   Clock3,
   Code2,
   Download,
+  FileUp,
+  Terminal,
   ExternalLink,
   FileText,
   Maximize2,
@@ -25,8 +25,28 @@ import { Badge, Button, Alert, Loading } from "../components/UI";
 import { formatDate, verdictLabel } from "../lib/utils";
 const templates = {
   cpp: "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n\n    // Write your solution here\n\n    return 0;\n}\n",
-  c: "#include <stdio.h>\n\nint main(void) {\n    // Write your solution here\n\n    return 0;\n}\n",
+  c: "#include <stdio.h>\n\nint main() {\n    // Write your solution here\n\n    return 0;\n}\n",
 };
+type RunResult = {
+  status: string;
+  stdout?: string;
+  stderr?: string;
+  execution_time_ms?: number;
+};
+
+const runStatusLabel: Record<string, string> = {
+  SUCCESS: "Execution completed",
+  COMPILE_ERROR: "Compilation error",
+  COMPILE_TIMEOUT: "Compilation timeout",
+  TIME_LIMIT_EXCEEDED: "Time limit exceeded",
+  RUNTIME_ERROR: "Runtime error",
+  INVALID_SOURCE: "Invalid source code",
+  INVALID_INPUT: "Invalid input",
+  INVALID_LANGUAGE: "Unsupported language",
+  CANCELLED: "Execution cancelled",
+  INTERNAL_ERROR: "Runner error",
+};
+
 const terminalText = (s: Submission) =>
   s.verdict === "AC"
     ? "All test cases passed."
@@ -50,6 +70,11 @@ export default function ProblemWorkspace() {
   const [code, setCode] = useState(templates.cpp);
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [runInput, setRunInput] = useState("");
+  const [runResult, setRunResult] = useState<RunResult | null>(null);
+  const [running, setRunning] = useState(false);
+  const [runError, setRunError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [tab, setTab] = useState<"description" | "submissions">("description");
   const [fullscreen, setFullscreen] = useState(false);
   const pollRef = useRef<number | undefined>(undefined);
@@ -62,9 +87,6 @@ export default function ProblemWorkspace() {
       if (pollRef.current) window.clearInterval(pollRef.current);
     };
   }, [id]);
-  useEffect(() => {
-    setCode(templates[language]);
-  }, [language]);
   async function pollSubmission(submissionId: number) {
     let tries = 0;
     if (pollRef.current) window.clearInterval(pollRef.current);
@@ -87,6 +109,62 @@ export default function ProblemWorkspace() {
       }
     }, 1500);
   }
+  async function runCode() {
+    if (!code.trim()) {
+      setRunError("Tulis kode terlebih dahulu sebelum menjalankan program.");
+      return;
+    }
+
+    setRunning(true);
+    setRunError("");
+    setRunResult(null);
+    try {
+      const result = await request<RunResult>(
+        api.post("/run", { language, code, input: runInput }),
+      );
+      setRunResult(result);
+    } catch (e) {
+      setRunError(getErrorMessage(e));
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function handleFileUpload(file?: File) {
+    if (!file) return;
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (extension !== "c" && extension !== "cpp") {
+      setRunError("Pilih file dengan ekstensi .c atau .cpp.");
+      return;
+    }
+    if (file.size > 200 * 1024) {
+      setRunError("Ukuran file maksimal 200 KB.");
+      return;
+    }
+
+    try {
+      const contents = await file.text();
+      const nextLanguage = extension === "c" ? "c" : "cpp";
+      setLanguage(nextLanguage);
+      setCode(contents);
+      setRunResult(null);
+      setRunError("");
+    } catch {
+      setRunError("File tidak dapat dibaca.");
+    }
+  }
+
+  function downloadSource() {
+    const extension = language === "cpp" ? "cpp" : "c";
+    const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `solution.${extension}`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function submit() {
     if (!problem) return;
     setSubmitting(true);
@@ -184,14 +262,16 @@ export default function ProblemWorkspace() {
                   <FileText size={17} />
                   <span>Problem statement</span>
                 </div>
-                <a
-                  href={problem.pdf_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-link"
-                >
-                  Buka PDF <ExternalLink size={14} />
-                </a>
+                {problem.pdf_url ? (
+                  <a
+                    href={problem.pdf_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-link"
+                  >
+                    Buka PDF <ExternalLink size={14} />
+                  </a>
+                ) : null}
               </div>
               {problem.pdf_url ? (
                 <iframe
@@ -305,9 +385,41 @@ export default function ProblemWorkspace() {
               <span className="unsaved-dot" title="Editor aktif" />
             </div>
             <div className="editor-toolbar-right">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".c,.cpp,text/x-c,text/x-c++src"
+                hidden
+                onChange={(event) => {
+                  void handleFileUpload(event.target.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <button
+                className="icon-btn"
+                onClick={() => fileInputRef.current?.click()}
+                title="Upload file .c atau .cpp"
+                aria-label="Upload source file"
+              >
+                <FileUp size={15} />
+              </button>
+              <button
+                className="icon-btn"
+                onClick={downloadSource}
+                title="Download source code"
+                aria-label="Download source code"
+              >
+                <Download size={15} />
+              </button>
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as "c" | "cpp")}
+                onChange={(e) => {
+                  const nextLanguage = e.target.value as "c" | "cpp";
+                  setLanguage(nextLanguage);
+                  setCode(templates[nextLanguage]);
+                  setRunResult(null);
+                  setRunError("");
+                }}
                 aria-label="Bahasa pemrograman"
               >
                 <option value="cpp">C++ (G++17)</option>
@@ -352,15 +464,131 @@ export default function ProblemWorkspace() {
               <span>UTF-8</span>
               <span>{language === "cpp" ? "C++17" : "C17"}</span>
             </div>
-            <Button onClick={submit} disabled={submitting || !code.trim()}>
-              <Send size={15} />
-              {submitting ? "Mengirim..." : "Submit solution"}
-            </Button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Button
+                onClick={runCode}
+                disabled={running || submitting || !code.trim()}
+              >
+                <Play size={15} />
+                {running ? "Running..." : "Run Code"}
+              </Button>
+              <Button
+                onClick={submit}
+                disabled={submitting || running || !code.trim()}
+              >
+                <Send size={15} />
+                {submitting ? "Mengirim..." : "Submit solution"}
+              </Button>
+            </div>
           </div>
           <div className="submit-hint">
-            <Clock3 size={13} /> Kamu dapat melakukan submission berkali-kali
-            selama sesi aktif.
+            <Clock3 size={13} /> Run Code hanya menjalankan kode dengan input
+            kamu; Submit solution mengirim kode ke judge resmi.
           </div>
+          <section
+            className="run-console"
+            style={{
+              borderTop: "1px solid var(--border, #30363d)",
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 12,
+              }}
+            >
+              <Terminal size={16} />
+              <strong>Run console</strong>
+              {runResult && (
+                <Badge tone={runResult.status === "SUCCESS" ? "green" : "red"}>
+                  {runResult.status}
+                </Badge>
+              )}
+              {runResult?.execution_time_ms != null && (
+                <span
+                  style={{ marginLeft: "auto", fontSize: 12, opacity: 0.75 }}
+                >
+                  {runResult.execution_time_ms} ms
+                </span>
+              )}
+            </div>
+            <label
+              htmlFor="run-input"
+              style={{ display: "block", marginBottom: 6, fontSize: 13 }}
+            >
+              Custom input (stdin)
+            </label>
+            <textarea
+              id="run-input"
+              value={runInput}
+              onChange={(event) => setRunInput(event.target.value)}
+              placeholder="Masukkan input program di sini..."
+              rows={4}
+              spellCheck={false}
+              style={{
+                boxSizing: "border-box",
+                width: "100%",
+                resize: "vertical",
+                padding: 10,
+                borderRadius: 6,
+                border: "1px solid var(--border, #30363d)",
+                background: "var(--input-bg, #0d1117)",
+                color: "inherit",
+                fontFamily: "JetBrains Mono, Consolas, monospace",
+                fontSize: 13,
+              }}
+            />
+            {runError && (
+              <div
+                role="alert"
+                style={{ marginTop: 10, color: "#f87171", fontSize: 13 }}
+              >
+                {runError}
+              </div>
+            )}
+            {runResult && (
+              <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+                {(runResult.stdout || runResult.status === "SUCCESS") && (
+                  <div className="compile-output">
+                    <div>Standard output (stdout)</div>
+                    <pre
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {runResult.stdout || "(tidak ada output)"}
+                    </pre>
+                  </div>
+                )}
+                {runResult.stderr && (
+                  <div className="compile-output">
+                    <div>
+                      {runResult.status === "COMPILE_ERROR"
+                        ? "Compiler output"
+                        : "Standard error (stderr)"}
+                    </div>
+                    <pre
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {runResult.stderr}
+                    </pre>
+                  </div>
+                )}
+                {!runResult.stderr && runResult.status !== "SUCCESS" && (
+                  <p style={{ margin: 0, fontSize: 13 }}>
+                    {runStatusLabel[runResult.status] || runResult.status}
+                  </p>
+                )}
+              </div>
+            )}
+          </section>
         </section>
       </div>
     </div>

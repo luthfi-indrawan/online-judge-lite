@@ -6,7 +6,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
-import ProblemWorkspace from "./pages/ProblemWorkspace";
+import ProblemWorkspace from "./pages/ProblemWorkspaceBackup";
 import ScoreboardPage from "./pages/Scoreboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminGroups from "./pages/AdminGroups";
