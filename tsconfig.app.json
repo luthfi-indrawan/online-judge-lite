@@ -18,5 +18,9 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../docs/ProblemWorkspaceBackup.tsx"]
+  "include": [
+    "src",
+    "src/pages/ProblemWorkspace.tsx",
+    "../docs/ProblemWorkspace.tsx"
+  ]
 }
