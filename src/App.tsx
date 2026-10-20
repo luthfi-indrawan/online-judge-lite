@@ -31,7 +31,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route path="scoreboard" element={<Dashboard />} />
+              <Route index element={<Dashboard />} />
               <Route path="groups" element={<Groups />} />
               <Route path="groups/:id" element={<GroupDetail />} />
               <Route path="problems/:id" element={<ProblemWorkspace />} />
