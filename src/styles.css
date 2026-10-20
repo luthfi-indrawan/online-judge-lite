@@ -2217,7 +2217,7 @@ textarea:focus-visible {
   border-radius: 3px;
 }
 .legend-first {
-  background: #064e3b;
+  background: #1d7657;
 }
 .legend-ac {
   background: #3bb786;
@@ -2373,13 +2373,13 @@ textarea:focus-visible {
     monospace;
 }
 .cell-first {
-  background: #19543f;
+  background: #064e3b;
   border: 1px solid #064e3b;
   color: #a1f0cc;
 }
 .cell-ac {
-  background: #214e3e;
-  border: 1px solid #306c52;
+  background: #209965;
+  border: 1px solid #209965;
   color: #8ce3b7;
 }
 .cell-wrong {
