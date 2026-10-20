@@ -208,6 +208,7 @@ textarea:focus-visible {
   color: #66718a;
   font-size: 10px;
 }
+
 .sidebar-foot span {
   padding: 0 5px;
   color: #3f4c66;
@@ -2216,7 +2217,7 @@ textarea:focus-visible {
   border-radius: 3px;
 }
 .legend-first {
-  background: #1d7657;
+  background: #064e3b;
 }
 .legend-ac {
   background: #3bb786;
@@ -2342,6 +2343,7 @@ textarea:focus-visible {
   color: #78869f;
   margin-top: 3px;
 }
+
 .solved-cell {
   text-align: center;
   white-space: nowrap;
@@ -2372,7 +2374,7 @@ textarea:focus-visible {
 }
 .cell-first {
   background: #19543f;
-  border: 1px solid #2d8964;
+  border: 1px solid #064e3b;
   color: #a1f0cc;
 }
 .cell-ac {
