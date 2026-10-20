@@ -549,42 +549,43 @@ export default function ProblemWorkspace() {
                 {runError}
               </div>
             )}
+
             {runResult && (
               <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+                {/* Standard Output */}
                 {(runResult.stdout || runResult.status === "SUCCESS") && (
-                  <div className="compile-output">
-                    <div>Standard output (stdout)</div>
-                    <pre
-                      style={{
-                        whiteSpace: "pre-wrap",
-                        overflowWrap: "anywhere",
-                      }}
-                    >
-                      {runResult.stdout || "(tidak ada output)"}
-                    </pre>
+                  <div className="run-output stdout">
+                    <div>Standard Output (stdout)</div>
+                    <pre>{runResult.stdout || "(tidak ada output)"}</pre>
                   </div>
                 )}
+
+                {/* Standard Error atau Compiler Output */}
                 {runResult.stderr && (
-                  <div className="compile-output">
+                  <div
+                    className={
+                      runResult.status === "COMPILE_ERROR"
+                        ? "compile-output"
+                        : "run-output stderr"
+                    }
+                  >
                     <div>
                       {runResult.status === "COMPILE_ERROR"
-                        ? "Compiler output"
-                        : "Standard error (stderr)"}
+                        ? "Compiler Output"
+                        : "Standard Error (stderr)"}
                     </div>
-                    <pre
-                      style={{
-                        whiteSpace: "pre-wrap",
-                        overflowWrap: "anywhere",
-                      }}
-                    >
-                      {runResult.stderr}
-                    </pre>
+                    <pre>{runResult.stderr}</pre>
                   </div>
                 )}
+
+                {/* Status selain sukses ketika tidak ada pesan error */}
                 {!runResult.stderr && runResult.status !== "SUCCESS" && (
-                  <p style={{ margin: 0, fontSize: 13 }}>
-                    {runStatusLabel[runResult.status] || runResult.status}
-                  </p>
+                  <div className="run-output">
+                    <div>Execution Status</div>
+                    <pre>
+                      {runStatusLabel[runResult.status] || runResult.status}
+                    </pre>
+                  </div>
                 )}
               </div>
             )}
